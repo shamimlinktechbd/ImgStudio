@@ -79,10 +79,23 @@ class ImageController extends Controller
     {
         $this->authorizeAsset($request, $image);
 
+        if ((! $image->width || ! $image->height) && file_exists(storage_path('app/public/' . $image->original_path))) {
+            [$w, $h] = @getimagesize(storage_path('app/public/' . $image->original_path)) ?: [null, null];
+            if ($w && $h) {
+                $image->update(['width' => $w, 'height' => $h]);
+            }
+        }
+
+        $backgroundAssets = BackgroundAsset::where('is_active', true)->latest()->get();
+        $cacheBuster = $image->updated_at ? $image->updated_at->timestamp : time();
+
         return view('images.show', [
             'image' => $image,
+            'imageUrl' => asset('storage/' . $image->displayPath()) . '?v=' . $cacheBuster,
+            'originalUrl' => asset('storage/' . $image->original_path) . '?v=' . $cacheBuster,
             'backgrounds' => $this->backgrounds,
-            'backgroundAssets' => BackgroundAsset::where('is_active', true)->latest()->get(),
+            'backgroundAssets' => $backgroundAssets,
+            'backgroundUrls' => $backgroundAssets->mapWithKeys(fn($bg) => [$bg->id => asset('storage/' . $bg->path)]),
         ]);
     }
 
@@ -92,8 +105,9 @@ class ImageController extends Controller
 
         $data = $request->validate([
             'format' => ['required', 'in:png,jpg,jpeg,webp'],
-            'width' => ['nullable', 'integer', 'min:32', 'max:5000'],
-            'height' => ['nullable', 'integer', 'min:32', 'max:5000'],
+            'width' => ['nullable', 'integer', 'min:16', 'max:8000'],
+            'height' => ['nullable', 'integer', 'min:16', 'max:8000'],
+            'mode' => ['nullable', 'string', 'in:stretch,contain,cover'],
             'background' => ['nullable', 'string', 'max:40'],
             'remove_background' => ['nullable', 'boolean'],
             'background_asset_id' => ['nullable', 'exists:background_assets,id'],
@@ -114,6 +128,7 @@ class ImageController extends Controller
                     'format' => $format,
                     'width' => $data['width'] ?? null,
                     'height' => $data['height'] ?? null,
+                    'mode' => $data['mode'] ?? 'stretch',
                     'background' => $data['background'] ?? 'original',
                     'remove_background' => $request->boolean('remove_background') || $backgroundAsset !== null,
                     'background_path' => $backgroundAsset ? storage_path('app/public/' . $backgroundAsset->path) : null,
@@ -121,7 +136,7 @@ class ImageController extends Controller
             );
         } catch (\Throwable $exception) {
             return back()->withErrors([
-                'processor' => $exception->getMessage() . ' Install Python and run `pip install -r python-service/requirements.txt`.',
+                'processor' => 'Processing error: ' . $exception->getMessage(),
             ]);
         }
 
@@ -143,14 +158,15 @@ class ImageController extends Controller
 
         $this->logActivity($request, $image, 'processed', [
             'format' => $format,
-            'width' => $data['width'] ?? null,
-            'height' => $data['height'] ?? null,
+            'width' => $result['width'] ?? ($data['width'] ?? null),
+            'height' => $result['height'] ?? ($data['height'] ?? null),
+            'mode' => $data['mode'] ?? 'stretch',
             'background' => $data['background'] ?? 'original',
             'remove_background' => $request->boolean('remove_background') || $backgroundAsset !== null,
             'background_asset_id' => optional($backgroundAsset)->id,
         ]);
 
-        return redirect()->route('images.show', $image)->with('status', 'Image processed successfully.');
+        return redirect()->route('images.show', $image)->with('status', 'Image processed and resized successfully.');
     }
 
     public function history(Request $request)
@@ -206,7 +222,6 @@ class ImageController extends Controller
         if (! $request->user() && $image->guest_token === $this->guestToken($request)) {
             return;
         }
-
         abort(403);
     }
 

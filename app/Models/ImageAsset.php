@@ -54,4 +54,30 @@ class ImageAsset extends Model
     {
         return $this->processed_path ?: $this->original_path;
     }
+
+    public function url(): string
+    {
+        return asset('storage/' . $this->displayPath());
+    }
+
+    public function originalUrl(): string
+    {
+        return asset('storage/' . $this->original_path);
+    }
+
+    public function formattedSize(): string
+    {
+        $bytes = $this->size;
+        if (! $bytes) {
+            return 'N/A';
+        }
+        if ($bytes >= 1048576) {
+            return number_format($bytes / 1048576, 2) . ' MB';
+        }
+        if ($bytes >= 1024) {
+            return number_format($bytes / 1024, 1) . ' KB';
+        }
+        return $bytes . ' B';
+    }
 }
+

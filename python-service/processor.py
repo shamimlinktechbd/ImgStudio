@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import sys
@@ -16,21 +17,35 @@ BACKGROUNDS = {
 def parse_payload():
     if len(sys.argv) < 2:
         raise ValueError("Missing JSON payload.")
-    return json.loads(sys.argv[1])
+    raw = sys.argv[1].strip()
+    if raw.startswith("{"):
+        return json.loads(raw)
+    try:
+        decoded = base64.b64decode(raw).decode("utf-8")
+        return json.loads(decoded)
+    except Exception:
+        return json.loads(raw)
 
 
-def target_size(image, width, height):
+def target_size(image, width, height, mode="stretch"):
     original_width, original_height = image.size
     width = int(width) if width else None
     height = int(height) if height else None
 
-    if width and height:
-        return width, height
-    if width:
+    if not width and not height:
+        return original_width, original_height
+
+    if width and not height:
         return width, max(1, round(original_height * (width / original_width)))
-    if height:
+
+    if height and not width:
         return max(1, round(original_width * (height / original_height))), height
-    return original_width, original_height
+
+    if mode == "contain":
+        ratio = min(width / original_width, height / original_height)
+        return max(1, round(original_width * ratio)), max(1, round(original_height * ratio))
+
+    return width, height
 
 
 def apply_background(image, background, output_format):
@@ -105,6 +120,7 @@ def main():
     output_format = payload.get("format", "png").lower()
     if output_format == "jpeg":
         output_format = "jpg"
+    mode = payload.get("mode", "stretch")
 
     image = Image.open(source)
     background_removed = False
@@ -113,19 +129,35 @@ def main():
         image = remove_background_with_ai(image)
         background_removed = True
 
-    width, height = target_size(image, payload.get("width"), payload.get("height"))
-
-    resample = getattr(Image, "Resampling", Image).LANCZOS
-    if image.size != (width, height):
-        image = image.resize((width, height), resample)
+    req_w = payload.get("width")
+    req_h = payload.get("height")
+    
+    if mode == "cover" and req_w and req_h:
+        image = cover_resize(image, (int(req_w), int(req_h)))
+    else:
+        width, height = target_size(image, req_w, req_h, mode=mode)
+        resample = getattr(Image, "Resampling", Image).LANCZOS
+        if image.size != (width, height):
+            image = image.resize((width, height), resample)
 
     if payload.get("background_path"):
         image = apply_uploaded_background(image, payload["background_path"], output_format)
     else:
         image = apply_background(image, payload.get("background"), output_format)
+
     os.makedirs(os.path.dirname(destination), exist_ok=True)
 
     save_format = "JPEG" if output_format == "jpg" else output_format.upper()
+    if save_format == "JPEG" and image.mode in ("RGBA", "LA", "P"):
+        canvas = Image.new("RGB", image.size, (255, 255, 255))
+        if image.mode == "RGBA":
+            canvas.paste(image, mask=image.split()[3])
+        else:
+            canvas.paste(image.convert("RGB"))
+        image = canvas
+    elif save_format == "JPEG" and image.mode != "RGB":
+        image = image.convert("RGB")
+
     save_options = {"quality": 92}
     if save_format == "PNG":
         save_options = {"optimize": True}

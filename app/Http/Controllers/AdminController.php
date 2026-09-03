@@ -64,7 +64,6 @@ class AdminController extends Controller
             'height' => $height,
             'is_active' => true,
         ]);
-
         return redirect()->route('admin.backgrounds')->with('status', 'Background uploaded.');
     }
 
