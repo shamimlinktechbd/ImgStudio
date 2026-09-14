@@ -808,3 +808,536 @@ td {
     transform: translateY(-1px);
 }
 
+/* ==========================================================================
+   Compressor Navigation & Badges
+   ========================================================================== */
+.nav-highlight {
+    align-items: center;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 9999px;
+    color: #065f46 !important;
+    display: inline-flex;
+    font-weight: 700;
+    gap: 6px;
+    padding: 4px 12px;
+    transition: all 0.15s ease;
+}
+
+.nav-highlight:hover {
+    background: #d1fae5;
+    border-color: #6ee7b7;
+    transform: translateY(-1px);
+}
+
+.nav-badge-pill {
+    background: #059669;
+    border-radius: 9999px;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    padding: 1px 6px;
+    text-transform: uppercase;
+}
+
+.savings-pill {
+    background: #15803d !important;
+    color: #ffffff !important;
+    font-weight: 800;
+}
+
+.size-comparison-tag {
+    align-items: center;
+    display: inline-flex;
+    font-size: 13px;
+    gap: 6px;
+}
+
+.size-before {
+    color: var(--muted);
+    text-decoration: line-through;
+}
+
+.size-arrow {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.size-after {
+    color: #15803d;
+    font-weight: 800;
+}
+
+.savings-tag {
+    background: #dcfce7;
+    border-radius: 4px;
+    color: #166534;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 1px 6px;
+}
+
+/* ==========================================================================
+   Tool Tabs Switcher (Compress vs Resize)
+   ========================================================================== */
+.tool-tabs {
+    background: #eef2eb;
+    border-radius: 8px;
+    display: flex;
+    gap: 4px;
+    margin-bottom: 18px;
+    padding: 4px;
+}
+
+.tool-tab-btn {
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    color: var(--muted);
+    cursor: pointer;
+    flex: 1;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 9px 12px;
+    transition: all 0.15s ease;
+}
+
+.tool-tab-btn:hover {
+    color: var(--ink);
+}
+
+.tool-tab-btn.active {
+    background: #ffffff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    color: #0f172a;
+}
+
+/* ==========================================================================
+   Compression Result Card
+   ========================================================================== */
+.compression-result-card {
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    border: 1px solid #86efac;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+}
+
+.result-card-header {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.result-badge {
+    color: #166534;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.result-stats-row {
+    align-items: center;
+    display: flex;
+    gap: 16px;
+}
+
+.result-stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.result-stat-item .stat-label {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.result-stat-item .stat-num {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.result-stat-item .stat-num.highlight {
+    color: #15803d;
+    font-size: 18px;
+    font-weight: 900;
+}
+
+.stat-arrow {
+    color: #16a34a;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* ==========================================================================
+   Mode Toggle & Presets
+   ========================================================================== */
+.compression-mode-toggle {
+    background: #f1f5f9;
+    border-radius: 6px;
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    padding: 3px;
+}
+
+.mode-radio {
+    align-items: center;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    flex: 1;
+    font-size: 12px;
+    font-weight: 700;
+    gap: 6px;
+    justify-content: center;
+    padding: 7px 8px;
+    transition: all 0.15s ease;
+}
+
+.mode-radio input {
+    margin: 0;
+}
+
+.mode-radio:has(input:checked) {
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    color: #0f172a;
+}
+
+.kb-preset-group {
+    display: grid;
+    gap: 6px;
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.kb-preset,
+.kb-chip {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 4px;
+    text-align: center;
+    transition: all 0.15s ease;
+}
+
+.kb-preset:hover,
+.kb-chip:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+}
+
+.kb-preset.active,
+.kb-chip.active {
+    background: #16a34a;
+    border-color: #15803d;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3);
+}
+
+.slider-header {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.slider-val {
+    background: #e2e8f0;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 2px 8px;
+}
+
+.range-slider {
+    accent-color: #16a34a;
+    cursor: pointer;
+    width: 100%;
+}
+
+.slider-labels {
+    color: var(--muted);
+    display: flex;
+    font-size: 11px;
+    justify-content: space-between;
+    margin-top: 4px;
+}
+
+.compress-btn {
+    margin-top: 10px;
+    width: 100%;
+}
+
+/* ==========================================================================
+   Standalone Compressor Page
+   ========================================================================== */
+.compressor-container {
+    margin: 0 auto;
+    max-width: 1060px;
+    padding: 10px 0 40px;
+}
+
+.compressor-header {
+    margin-bottom: 28px;
+    text-align: center;
+}
+
+.header-badge {
+    background: #dcfce7;
+    border: 1px solid #86efac;
+    border-radius: 9999px;
+    color: #166534;
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    padding: 4px 14px;
+    text-transform: uppercase;
+}
+
+.compressor-header h1 {
+    font-size: 32px;
+    font-weight: 800;
+    margin: 0 0 8px;
+}
+
+.compressor-header p {
+    color: var(--muted);
+    font-size: 16px;
+    margin: 0;
+}
+
+.compressor-workspace {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: minmax(0, 1.4fr) minmax(300px, 0.8fr);
+}
+
+.compressor-card {
+    padding: 24px;
+}
+
+.dropzone {
+    align-items: center;
+    background: #f8fafc;
+    border: 2px dashed #94a3b8;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    min-height: 200px;
+    padding: 24px;
+    position: relative;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.dropzone:hover,
+.dropzone.dragover {
+    background: #f0fdf4;
+    border-color: #22c55e;
+    box-shadow: 0 4px 16px rgba(34, 197, 94, 0.12);
+}
+
+.dropzone-input {
+    cursor: pointer;
+    height: 100%;
+    left: 0;
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    width: 100%;
+    z-index: 2;
+}
+
+.dropzone-icon {
+    font-size: 44px;
+    line-height: 1;
+    margin-bottom: 12px;
+}
+
+.dropzone-content h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 6px;
+}
+
+.dropzone-content p {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0 0 10px;
+}
+
+.browse-btn {
+    color: #16a34a;
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+.file-limits {
+    color: #94a3b8;
+    display: block;
+    font-size: 12px;
+}
+
+.dropzone-preview {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    z-index: 3;
+}
+
+.dropzone-preview img {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    max-height: 180px;
+    object-fit: contain;
+}
+
+.preview-meta {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+}
+
+.selected-filename {
+    font-size: 14px;
+    font-weight: 700;
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.btn-change-file {
+    background: #ef4444;
+    border: 0;
+    border-radius: 6px;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    transition: background 0.15s ease;
+}
+
+.btn-change-file:hover {
+    background: #dc2626;
+}
+
+.compressor-sidebar {
+    padding: 24px;
+}
+
+.compressor-sidebar h2 {
+    font-size: 18px;
+    margin-top: 0;
+    margin-bottom: 16px;
+}
+
+.feature-card {
+    align-items: flex-start;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+}
+
+.feature-card:last-of-type {
+    border-bottom: 0;
+}
+
+.feature-icon {
+    font-size: 22px;
+    line-height: 1;
+}
+
+.feature-text strong {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.feature-text p {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.4;
+    margin: 0;
+}
+
+/* ==========================================================================
+   Homepage Promo Card
+   ========================================================================== */
+.compressor-promo-card {
+    align-items: center;
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    border: 1px solid #86efac;
+    border-radius: 10px;
+    display: flex;
+    gap: 18px;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding: 16px 20px;
+}
+
+.promo-badge {
+    background: #16a34a;
+    border-radius: 9999px;
+    color: #ffffff;
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    padding: 2px 8px;
+    text-transform: uppercase;
+}
+
+.promo-content h3 {
+    font-size: 16px;
+    font-weight: 800;
+    margin: 0 0 4px;
+}
+
+.promo-content p {
+    color: #166534;
+    font-size: 13px;
+    margin: 0;
+}
+
+.promo-btn {
+    background: #16a34a;
+    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);
+    color: #ffffff;
+    flex-shrink: 0;
+    font-weight: 700;
+    padding: 10px 16px;
+}
+
+.promo-btn:hover {
+    background: #15803d;
+}
+
+@media (max-width: 768px) {
+    .compressor-workspace {
+        grid-template-columns: 1fr;
+    }
+    .compressor-promo-card {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+

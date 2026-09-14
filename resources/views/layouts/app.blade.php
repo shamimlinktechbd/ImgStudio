@@ -10,6 +10,10 @@
     <header class="topbar">
         <a class="brand" href="{{ route('images.index') }}">Image Studio</a>
         <nav class="nav">
+            <a href="{{ route('images.compress.index') }}" class="nav-highlight">
+                <span>⚡ Compress Image</span>
+                <span class="nav-badge-pill">New</span>
+            </a>
             <a href="{{ route('images.history') }}">History</a>
             @auth
                 @if(auth()->user()->is_admin)

@@ -22,6 +22,8 @@ class PythonImageProcessor
             'background' => $options['background'] ?? 'original',
             'remove_background' => (bool) ($options['remove_background'] ?? false),
             'background_path' => $options['background_path'] ?? null,
+            'target_kb' => $options['target_kb'] ?? null,
+            'quality' => $options['quality'] ?? null,
         ]);
 
         $encodedPayload = base64_encode($payload);
@@ -179,20 +181,124 @@ class PythonImageProcessor
 
         @mkdir(dirname($destination), 0777, true);
 
-        if ($format === 'jpg') {
-            imagejpeg($canvas, $destination, 92);
-        } elseif ($format === 'webp') {
-            imagewebp($canvas, $destination, 88);
+        $targetKb = ! empty($options['target_kb']) ? (float) $options['target_kb'] : null;
+        $userQuality = ! empty($options['quality']) ? (int) $options['quality'] : null;
+        $qualityUsed = null;
+
+        if ($targetKb) {
+            $targetBytes = (int) ($targetKb * 1024);
+            $encode = function ($img, $q) use ($format) {
+                ob_start();
+                if ($format === 'jpg') {
+                    imagejpeg($img, null, (int) $q);
+                } elseif ($format === 'webp') {
+                    imagewebp($img, null, (int) $q);
+                } else {
+                    imagepng($img, null, 9);
+                }
+                return ob_get_clean();
+            };
+
+            if ($format === 'png') {
+                $curr = $canvas;
+                $data = $encode($curr, 9);
+                while (strlen($data) > $targetBytes && imagesx($curr) > 64 && imagesy($curr) > 64) {
+                    $nw = max(32, (int) (imagesx($curr) * 0.82));
+                    $nh = max(32, (int) (imagesy($curr) * 0.82));
+                    $scaled = imagescale($curr, $nw, $nh, IMG_LANCZOS);
+                    if ($curr !== $canvas) {
+                        imagedestroy($curr);
+                    }
+                    $curr = $scaled;
+                    $data = $encode($curr, 9);
+                }
+                file_put_contents($destination, $data);
+                $finalW = imagesx($curr);
+                $finalH = imagesy($curr);
+                if ($curr !== $canvas) {
+                    imagedestroy($curr);
+                }
+            } else {
+                $curr = $canvas;
+                $minQ = 12;
+                $maxQ = 95;
+                $bestData = null;
+                $bestQ = $minQ;
+
+                for ($iter = 0; $iter < 12; $iter++) {
+                    $minData = $encode($curr, $minQ);
+                    if (strlen($minData) <= $targetBytes) {
+                        $l = $minQ;
+                        $r = $maxQ;
+                        while ($l <= $r) {
+                            $mid = (int) (($l + $r) / 2);
+                            $data = $encode($curr, $mid);
+                            if (strlen($data) <= $targetBytes) {
+                                $bestData = $data;
+                                $bestQ = $mid;
+                                $l = $mid + 1;
+                            } else {
+                                $r = $mid - 1;
+                            }
+                        }
+                        if ($bestData !== null) {
+                            break;
+                        }
+                    }
+
+                    $cw = imagesx($curr);
+                    $ch = imagesy($curr);
+                    if ($cw <= 80 || $ch <= 80) {
+                        $bestData = $minData;
+                        $bestQ = $minQ;
+                        break;
+                    }
+
+                    $nw = max(60, (int) ($cw * 0.82));
+                    $nh = max(60, (int) ($ch * 0.82));
+                    $scaled = imagescale($curr, $nw, $nh, IMG_LANCZOS);
+                    if ($curr !== $canvas) {
+                        imagedestroy($curr);
+                    }
+                    $curr = $scaled;
+                }
+
+                if ($bestData === null) {
+                    $bestData = $encode($curr, $minQ);
+                    $bestQ = $minQ;
+                }
+
+                file_put_contents($destination, $bestData);
+                $finalW = imagesx($curr);
+                $finalH = imagesy($curr);
+                $qualityUsed = $bestQ;
+                if ($curr !== $canvas) {
+                    imagedestroy($curr);
+                }
+            }
         } else {
-            imagepng($canvas, $destination, 6);
+            $finalW = $newW;
+            $finalH = $newH;
+            if ($format === 'jpg') {
+                $qualityUsed = $userQuality ? max(5, min(100, $userQuality)) : 92;
+                imagejpeg($canvas, $destination, $qualityUsed);
+            } elseif ($format === 'webp') {
+                $qualityUsed = $userQuality ? max(5, min(100, $userQuality)) : 88;
+                imagewebp($canvas, $destination, $qualityUsed);
+            } else {
+                imagepng($canvas, $destination, 6);
+            }
         }
         imagedestroy($canvas);
 
         return [
             'path' => $destination,
-            'width' => $newW,
-            'height' => $newH,
+            'width' => $finalW,
+            'height' => $finalH,
             'format' => $format,
+            'size_bytes' => @filesize($destination) ?: 0,
+            'quality_used' => $qualityUsed,
+            'target_kb' => $targetKb,
             'background' => $bgOption,
             'background_asset' => null,
             'background_removed' => false,

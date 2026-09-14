@@ -10,6 +10,15 @@
                 </div>
             </div>
 
+            <div class="compressor-promo-card">
+                <div class="promo-content">
+                    <span class="promo-badge">⚡ New Feature</span>
+                    <h3>Need to reduce image size (KB)?</h3>
+                    <p>Compress 2 MB+ files down to <strong>10 KB</strong>, <strong>50 KB</strong>, or <strong>100 KB</strong> with crystal-clear visual quality.</p>
+                </div>
+                <a href="{{ route('images.compress.index') }}" class="button promo-btn">Go to Compressor &rarr;</a>
+            </div>
+
             <form class="upload-form" method="POST" action="{{ route('images.store') }}" enctype="multipart/form-data">
                 @csrf
                 <label>

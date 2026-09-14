@@ -67,8 +67,40 @@ class ImageAsset extends Model
 
     public function formattedSize(): string
     {
-        $bytes = $this->size;
-        if (! $bytes) {
+        return self::formatBytes((int) $this->size);
+    }
+
+    public function currentSizeBytes(): int
+    {
+        if ($this->processed_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($this->processed_path)) {
+            return (int) \Illuminate\Support\Facades\Storage::disk('public')->size($this->processed_path);
+        }
+
+        return (int) $this->size;
+    }
+
+    public function formattedCurrentSize(): string
+    {
+        return self::formatBytes($this->currentSizeBytes());
+    }
+
+    public function savingsPercent(): ?float
+    {
+        if (! $this->processed_path || ! $this->size) {
+            return null;
+        }
+
+        $current = $this->currentSizeBytes();
+        if ($current >= $this->size) {
+            return 0.0;
+        }
+
+        return round((($this->size - $current) / $this->size) * 100, 1);
+    }
+
+    public static function formatBytes(int $bytes): string
+    {
+        if ($bytes <= 0) {
             return 'N/A';
         }
         if ($bytes >= 1048576) {
@@ -77,6 +109,7 @@ class ImageAsset extends Model
         if ($bytes >= 1024) {
             return number_format($bytes / 1024, 1) . ' KB';
         }
+
         return $bytes . ' B';
     }
 }

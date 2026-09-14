@@ -122,8 +122,8 @@ class ImageController extends Controller
 
         try {
             $result = $processor->process(
-                storage_path('app/public/' . $image->original_path),
-                storage_path('app/public/' . $destination),
+                Storage::disk('public')->path($image->original_path),
+                Storage::disk('public')->path($destination),
                 [
                     'format' => $format,
                     'width' => $data['width'] ?? null,
@@ -131,7 +131,7 @@ class ImageController extends Controller
                     'mode' => $data['mode'] ?? 'stretch',
                     'background' => $data['background'] ?? 'original',
                     'remove_background' => $request->boolean('remove_background') || $backgroundAsset !== null,
-                    'background_path' => $backgroundAsset ? storage_path('app/public/' . $backgroundAsset->path) : null,
+                    'background_path' => $backgroundAsset ? Storage::disk('public')->path($backgroundAsset->path) : null,
                 ]
             );
         } catch (\Throwable $exception) {
@@ -167,6 +167,178 @@ class ImageController extends Controller
         ]);
 
         return redirect()->route('images.show', $image)->with('status', 'Image processed and resized successfully.');
+    }
+
+    public function compressIndex(Request $request)
+    {
+        $recentImages = $this->ownedImages($request)->latest()->take(6)->get();
+
+        return view('images.compress', [
+            'recentImages' => $recentImages,
+        ]);
+    }
+
+    public function compressDirect(Request $request, PythonImageProcessor $processor)
+    {
+        $data = $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:20480'],
+            'target_kb' => ['nullable', 'numeric', 'min:5', 'max:50000'],
+            'quality' => ['nullable', 'integer', 'min:5', 'max:100'],
+            'format' => ['required', 'in:png,jpg,jpeg,webp'],
+            'compression_type' => ['nullable', 'string', 'in:target_kb,quality'],
+        ]);
+
+        $file = $data['image'];
+        $path = $file->store('images/originals', 'public');
+        [$width, $height] = @getimagesize($file->getRealPath()) ?: [null, null];
+
+        $asset = ImageAsset::create([
+            'user_id' => optional($request->user())->id,
+            'guest_token' => $this->guestToken($request),
+            'original_name' => $file->getClientOriginalName(),
+            'category' => 'compressed',
+            'original_path' => $path,
+            'mime_type' => $file->getMimeType(),
+            'size' => $file->getSize(),
+            'width' => $width,
+            'height' => $height,
+            'metadata' => [
+                'extension' => $file->getClientOriginalExtension(),
+            ],
+        ]);
+
+        $this->logActivity($request, $asset, 'uploaded', [
+            'filename' => $asset->original_name,
+        ]);
+
+        $format = $data['format'] === 'jpeg' ? 'jpg' : $data['format'];
+        $destination = 'images/processed/' . $asset->id . '-comp-' . now()->format('YmdHis') . '.' . $format;
+        Storage::disk('public')->makeDirectory('images/processed');
+
+        $options = [
+            'format' => $format,
+            'mode' => 'contain',
+        ];
+
+        if (($data['compression_type'] ?? 'target_kb') === 'quality' && ! empty($data['quality'])) {
+            $options['quality'] = (int) $data['quality'];
+        } else {
+            $options['target_kb'] = ! empty($data['target_kb']) ? (float) $data['target_kb'] : 50;
+        }
+
+        try {
+            $result = $processor->process(
+                Storage::disk('public')->path($asset->original_path),
+                Storage::disk('public')->path($destination),
+                $options
+            );
+        } catch (\Throwable $exception) {
+            return redirect()->route('images.show', $asset)->withErrors([
+                'compressor' => 'Compression failed: ' . $exception->getMessage(),
+            ]);
+        }
+
+        $asset->update([
+            'processed_path' => $destination,
+            'processed_format' => $format,
+            'resize_width' => $result['width'] ?? $asset->width,
+            'resize_height' => $result['height'] ?? $asset->height,
+            'last_action' => 'compressed',
+            'metadata' => array_merge($asset->metadata ?? [], [
+                'compression' => [
+                    'target_kb' => $options['target_kb'] ?? null,
+                    'quality_used' => $result['quality_used'] ?? null,
+                    'result_size' => $result['size_bytes'] ?? (Storage::disk('public')->exists($destination) ? Storage::disk('public')->size($destination) : 0),
+                ],
+            ]),
+        ]);
+
+        $this->logActivity($request, $asset, 'compressed', [
+            'format' => $format,
+            'target_kb' => $options['target_kb'] ?? null,
+            'result_size' => $result['size_bytes'] ?? null,
+        ]);
+
+        $savedPercent = $asset->savingsPercent();
+        $msg = "Image compressed successfully from {$asset->formattedSize()} to {$asset->formattedCurrentSize()}!";
+        if ($savedPercent !== null && $savedPercent > 0) {
+            $msg .= " (Saved {$savedPercent}% file size)";
+        }
+
+        return redirect()->route('images.show', $asset)->with('status', $msg);
+    }
+
+    public function compressAsset(Request $request, ImageAsset $image, PythonImageProcessor $processor)
+    {
+        $this->authorizeAsset($request, $image);
+
+        $data = $request->validate([
+            'compression_type' => ['nullable', 'string', 'in:target_kb,quality'],
+            'target_kb' => ['nullable', 'numeric', 'min:5', 'max:50000'],
+            'quality' => ['nullable', 'integer', 'min:5', 'max:100'],
+            'format' => ['required', 'in:png,jpg,jpeg,webp'],
+        ]);
+
+        $format = $data['format'] === 'jpeg' ? 'jpg' : $data['format'];
+        $destination = 'images/processed/' . $image->id . '-comp-' . now()->format('YmdHis') . '.' . $format;
+        Storage::disk('public')->makeDirectory('images/processed');
+
+        $options = [
+            'format' => $format,
+            'mode' => 'contain',
+        ];
+
+        if (($data['compression_type'] ?? 'target_kb') === 'quality' && ! empty($data['quality'])) {
+            $options['quality'] = (int) $data['quality'];
+        } else {
+            $options['target_kb'] = ! empty($data['target_kb']) ? (float) $data['target_kb'] : 50;
+        }
+
+        try {
+            $result = $processor->process(
+                Storage::disk('public')->path($image->original_path),
+                Storage::disk('public')->path($destination),
+                $options
+            );
+        } catch (\Throwable $exception) {
+            return back()->withErrors([
+                'compressor' => 'Compression error: ' . $exception->getMessage(),
+            ]);
+        }
+
+        if ($image->processed_path && $image->processed_path !== $image->original_path) {
+            Storage::disk('public')->delete($image->processed_path);
+        }
+
+        $image->update([
+            'processed_path' => $destination,
+            'processed_format' => $format,
+            'resize_width' => $result['width'] ?? $image->width,
+            'resize_height' => $result['height'] ?? $image->height,
+            'last_action' => 'compressed',
+            'metadata' => array_merge($image->metadata ?? [], [
+                'compression' => [
+                    'target_kb' => $options['target_kb'] ?? null,
+                    'quality_used' => $result['quality_used'] ?? null,
+                    'result_size' => $result['size_bytes'] ?? (Storage::disk('public')->exists($destination) ? Storage::disk('public')->size($destination) : 0),
+                ],
+            ]),
+        ]);
+
+        $this->logActivity($request, $image, 'compressed', [
+            'format' => $format,
+            'target_kb' => $options['target_kb'] ?? null,
+            'quality' => $options['quality'] ?? null,
+            'result_size' => $result['size_bytes'] ?? null,
+        ]);
+
+        $savedPercent = $image->savingsPercent();
+        $msg = "Image compressed to {$image->formattedCurrentSize()}!";
+        if ($savedPercent !== null && $savedPercent > 0) {
+            $msg .= " Saved {$savedPercent}% file size.";
+        }
+
+        return redirect()->route('images.show', $image)->with('status', $msg);
     }
 
     public function history(Request $request)
