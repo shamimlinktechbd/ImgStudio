@@ -22,12 +22,21 @@ class ExampleTest extends TestCase
         $response->assertSee('Upload and process image');
     }
 
+    protected function createValidJpeg(string $name = 'test.jpg'): UploadedFile
+    {
+        $hex = 'ffd8ffe000104a46494600010101004800480000ffdb004300080606070605080707070909080a0c140d0c0b0b0c1912130f141d1a1f1e1d1a1c1c20242e2720222c231c1c2837292c30313434341f27393d38323c2e333432ffc0000b080010001001011100ffc4001f0000010501010101010100000000000000000102030405060708090a0bffda0008010100003f007f00ffd9';
+        $temp = tempnam(sys_get_temp_dir(), 'test_jpeg_');
+        file_put_contents($temp, hex2bin($hex));
+
+        return new UploadedFile($temp, $name, 'image/jpeg', null, true);
+    }
+
     public function test_guest_can_upload_image_and_open_preview()
     {
         Storage::fake('public');
 
         $response = $this->post('/images', [
-            'image' => UploadedFile::fake()->image('avatar.jpg', 600, 400),
+            'image' => $this->createValidJpeg('avatar.jpg'),
             'category' => 'profile',
         ]);
 
@@ -65,14 +74,14 @@ class ExampleTest extends TestCase
         $this->actingAs($admin)->post(route('admin.backgrounds.store'), [
             'name' => 'Studio wall',
             'category' => 'Studio',
-            'background' => UploadedFile::fake()->image('wall.jpg', 1200, 800),
+            'background' => $this->createValidJpeg('wall.jpg'),
         ])->assertRedirect(route('admin.backgrounds'));
 
         $background = BackgroundAsset::first();
         Storage::disk('public')->assertExists($background->path);
 
         $this->post('/images', [
-            'image' => UploadedFile::fake()->image('portrait.png', 500, 500),
+            'image' => $this->createValidJpeg('portrait.png'),
         ]);
 
         $image = ImageAsset::where('original_name', 'portrait.png')->first();
@@ -80,5 +89,52 @@ class ExampleTest extends TestCase
         $this->get(route('images.show', $image))
             ->assertStatus(200)
             ->assertSee('Studio wall');
+    }
+
+    public function test_editor_shows_remove_bg_and_resize_tabs()
+    {
+        Storage::fake('public');
+
+        $this->post('/images', [
+            'image' => $this->createValidJpeg('photo.jpg'),
+        ]);
+
+        $image = ImageAsset::where('original_name', 'photo.jpg')->first();
+
+        $response = $this->get(route('images.show', $image));
+        $response->assertStatus(200);
+        $response->assertSee('Remove BG');
+        $response->assertSee('Resize');
+        $response->assertSee('Compress');
+        $response->assertSee('Choose Backdrop Style');
+    }
+
+    public function test_ajax_backdrop_processing_returns_json_response()
+    {
+        Storage::fake('public');
+
+        $this->post('/images', [
+            'image' => $this->createValidJpeg('photo.jpg'),
+        ]);
+
+        $image = ImageAsset::where('original_name', 'photo.jpg')->first();
+
+        $response = $this->postJson(route('images.process', $image), [
+            'format' => 'png',
+            'background' => 'studio',
+            'remove_background' => true,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'success',
+            'imageUrl',
+            'background_removed',
+            'background_category',
+        ]);
+        $response->assertJson([
+            'success' => true,
+            'background_category' => 'studio',
+        ]);
     }
 }

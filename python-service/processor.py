@@ -71,13 +71,17 @@ def apply_background(image, background, output_format):
 
 def remove_background_with_ai(image):
     try:
-        from rembg import remove
+        from rembg import remove, new_session
     except ImportError as exc:
         raise RuntimeError(
             "AI background removal needs rembg. Run `pip install -r python-service/requirements.txt`."
         ) from exc
 
-    result = remove(image.convert("RGBA"))
+    try:
+        session = new_session("u2netp")
+        result = remove(image.convert("RGBA"), session=session)
+    except Exception:
+        result = remove(image.convert("RGBA"))
 
     if isinstance(result, Image.Image):
         return result.convert("RGBA")
@@ -202,12 +206,21 @@ def main():
         output_format = "jpg"
     mode = payload.get("mode", "stretch")
 
-    image = Image.open(source)
+    cutout_source = payload.get("cutout_source")
+    cutout_destination = payload.get("cutout_destination")
     background_removed = False
 
-    if payload.get("remove_background"):
-        image = remove_background_with_ai(image)
+    if cutout_source and os.path.exists(cutout_source):
+        image = Image.open(cutout_source)
         background_removed = True
+    else:
+        image = Image.open(source)
+        if payload.get("remove_background"):
+            image = remove_background_with_ai(image)
+            background_removed = True
+            if cutout_destination:
+                os.makedirs(os.path.dirname(cutout_destination), exist_ok=True)
+                image.save(cutout_destination, "PNG", optimize=True)
 
     req_w = payload.get("width")
     req_h = payload.get("height")

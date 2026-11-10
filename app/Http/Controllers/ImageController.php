@@ -31,7 +31,11 @@ class ImageController extends Controller
 
     public function index(Request $request, ?string $category = null)
     {
-        $images = $this->ownedImages($request)->latest()->take(12)->get();
+        $query = $this->ownedImages($request);
+        if ($category && array_key_exists($category, $this->categories)) {
+            $query->where('category', $category);
+        }
+        $images = $query->latest()->take(12)->get();
 
         return view('images.index', [
             'images' => $images,
@@ -88,11 +92,15 @@ class ImageController extends Controller
 
         $backgroundAssets = BackgroundAsset::where('is_active', true)->latest()->get();
         $cacheBuster = $image->updated_at ? $image->updated_at->timestamp : time();
+        $cutoutRel = 'images/cutouts/' . $image->id . '.png';
+        $cutoutExists = file_exists(storage_path('app/public/' . $cutoutRel));
+        $cutoutUrl = $cutoutExists ? asset('storage/' . $cutoutRel) . '?v=' . $cacheBuster : null;
 
         return view('images.show', [
             'image' => $image,
             'imageUrl' => asset('storage/' . $image->displayPath()) . '?v=' . $cacheBuster,
             'originalUrl' => asset('storage/' . $image->original_path) . '?v=' . $cacheBuster,
+            'cutoutUrl' => $cutoutUrl,
             'backgrounds' => $this->backgrounds,
             'backgroundAssets' => $backgroundAssets,
             'backgroundUrls' => $backgroundAssets->mapWithKeys(fn($bg) => [$bg->id => asset('storage/' . $bg->path)]),
@@ -116,9 +124,17 @@ class ImageController extends Controller
         $format = $data['format'] === 'jpeg' ? 'jpg' : $data['format'];
         $destination = 'images/processed/' . $image->id . '-' . now()->format('YmdHis') . '.' . $format;
         Storage::disk('public')->makeDirectory('images/processed');
+        Storage::disk('public')->makeDirectory('images/cutouts');
+
+        $cutoutRel = 'images/cutouts/' . $image->id . '.png';
+        $cutoutFull = Storage::disk('public')->path($cutoutRel);
+        $cutoutExists = file_exists($cutoutFull);
+
         $backgroundAsset = ! empty($data['background_asset_id'])
             ? BackgroundAsset::where('is_active', true)->findOrFail($data['background_asset_id'])
             : null;
+
+        $shouldRemoveBg = $request->boolean('remove_background') || $backgroundAsset !== null;
 
         try {
             $result = $processor->process(
@@ -130,11 +146,16 @@ class ImageController extends Controller
                     'height' => $data['height'] ?? null,
                     'mode' => $data['mode'] ?? 'stretch',
                     'background' => $data['background'] ?? 'original',
-                    'remove_background' => $request->boolean('remove_background') || $backgroundAsset !== null,
+                    'remove_background' => $shouldRemoveBg,
+                    'cutout_source' => ($shouldRemoveBg && $cutoutExists) ? $cutoutFull : null,
+                    'cutout_destination' => $shouldRemoveBg ? $cutoutFull : null,
                     'background_path' => $backgroundAsset ? Storage::disk('public')->path($backgroundAsset->path) : null,
                 ]
             );
         } catch (\Throwable $exception) {
+            if ($request->wantsJson() || $request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+                return response()->json(['error' => 'Processing error: ' . $exception->getMessage()], 422);
+            }
             return back()->withErrors([
                 'processor' => 'Processing error: ' . $exception->getMessage(),
             ]);
@@ -165,6 +186,22 @@ class ImageController extends Controller
             'remove_background' => $request->boolean('remove_background') || $backgroundAsset !== null,
             'background_asset_id' => optional($backgroundAsset)->id,
         ]);
+
+        if ($request->wantsJson() || $request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            $freshCutoutExists = file_exists($cutoutFull);
+            return response()->json([
+                'success' => true,
+                'imageUrl' => asset('storage/' . $destination) . '?v=' . time(),
+                'cutoutUrl' => $freshCutoutExists ? asset('storage/' . $cutoutRel) . '?v=' . time() : null,
+                'originalUrl' => asset('storage/' . $image->original_path) . '?v=' . time(),
+                'background_removed' => (bool) $image->background_removed,
+                'background_category' => $image->background_category,
+                'width' => $image->resize_width ?: $image->width,
+                'height' => $image->resize_height ?: $image->height,
+                'size' => $image->formattedCurrentSize(),
+                'savings' => $image->savingsPercent(),
+            ]);
+        }
 
         return redirect()->route('images.show', $image)->with('status', 'Image processed and resized successfully.');
     }
@@ -372,7 +409,7 @@ class ImageController extends Controller
             ->with('status', 'Image deleted.');
     }
 
-    private function ownedImages(Request $request)
+    private function  ownedImages(Request $request)
     {
         if ($request->user()) {
             return ImageAsset::where('user_id', $request->user()->id);

@@ -33,3 +33,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::post('/backgrounds', [AdminController::class, 'storeBackground'])->name('admin.backgrounds.store');
     Route::delete('/backgrounds/{background}', [AdminController::class, 'destroyBackground'])->name('admin.backgrounds.destroy');
 });
+
+Route::get('/storage/{path}', function (string $path) {
+    $fullPath = storage_path('app/public/' . $path);
+    if (! file_exists($fullPath)) {
+        abort(404);
+    }
+    return response()->file($fullPath);
+})->where('path', '.*')->name('storage.fallback');

@@ -21,6 +21,8 @@ class PythonImageProcessor
             'mode' => $options['mode'] ?? 'stretch',
             'background' => $options['background'] ?? 'original',
             'remove_background' => (bool) ($options['remove_background'] ?? false),
+            'cutout_source' => $options['cutout_source'] ?? null,
+            'cutout_destination' => $options['cutout_destination'] ?? null,
             'background_path' => $options['background_path'] ?? null,
             'target_kb' => $options['target_kb'] ?? null,
             'quality' => $options['quality'] ?? null,
