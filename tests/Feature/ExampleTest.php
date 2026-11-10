@@ -104,9 +104,44 @@ class ExampleTest extends TestCase
         $response = $this->get(route('images.show', $image));
         $response->assertStatus(200);
         $response->assertSee('Remove BG');
+        $response->assertSee('Unblur');
         $response->assertSee('Resize');
         $response->assertSee('Compress');
         $response->assertSee('Choose Backdrop Style');
+    }
+
+    public function test_user_can_unblur_image_via_ajax()
+    {
+        Storage::fake('public');
+
+        $this->post('/images', [
+            'image' => $this->createValidJpeg('blurry_photo.jpg'),
+        ]);
+
+        $image = ImageAsset::where('original_name', 'blurry_photo.jpg')->first();
+
+        $response = $this->postJson(route('images.unblur', $image), [
+            'strength' => 0.75,
+            'denoise' => true,
+            'contrast_boost' => true,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+            'last_action' => 'unblurred',
+        ]);
+        $response->assertJsonStructure([
+            'success',
+            'imageUrl',
+            'originalUrl',
+            'last_action',
+        ]);
+
+        $image->refresh();
+        $this->assertEquals('unblurred', $image->last_action);
+        $this->assertNotNull($image->processed_path);
+        Storage::disk('public')->assertExists($image->processed_path);
     }
 
     public function test_ajax_backdrop_processing_returns_json_response()

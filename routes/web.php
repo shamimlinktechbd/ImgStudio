@@ -12,6 +12,7 @@ Route::post('/compress', [ImageController::class, 'compressDirect'])->name('imag
 Route::post('/images', [ImageController::class, 'store'])->name('images.store');
 Route::get('/images/{image}', [ImageController::class, 'show'])->name('images.show');
 Route::post('/images/{image}/process', [ImageController::class, 'process'])->name('images.process');
+Route::post('/images/{image}/unblur', [ImageController::class, 'unblur'])->name('images.unblur');
 Route::post('/images/{image}/compress', [ImageController::class, 'compressAsset'])->name('images.compress');
 Route::get('/images/{image}/download', [ImageController::class, 'download'])->name('images.download');
 Route::delete('/images/{image}', [ImageController::class, 'destroy'])->name('images.destroy');

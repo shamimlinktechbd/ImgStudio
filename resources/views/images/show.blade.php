@@ -10,6 +10,7 @@
                         {{ $image->resize_width ?: $image->width }} &times; {{ $image->resize_height ?: $image->height }} px
                     </span>
                     <span class="badge" id="bgRemovedBadge" style="@if(!$image->background_removed) display: none; @endif background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #ffffff;">✨ BG Removed</span>
+                    <span class="badge" id="unblurBadge" style="@if($image->last_action !== 'unblurred') display: none; @endif background: linear-gradient(135deg, #0284c7, #06b6d4); color: #ffffff;">🔍 Unblurred &amp; Clear</span>
                     <span class="badge" id="backdropSyncBadge" style="display: none; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-weight: 600;">✓ Style Applied</span>
                     @if($image->last_action === 'compressed')
                         <span class="badge success">⚡ {{ $image->formattedCurrentSize() }}</span>
@@ -27,11 +28,9 @@
                 </div>
 
                 <div class="preview-controls">
-                    @if($image->processed_path)
-                        <button type="button" class="btn-tool" id="btnToggleOriginal" title="Toggle between original and processed">
-                            <span id="toggleText">&#128065; View Original</span>
-                        </button>
-                    @endif
+                    <button type="button" class="btn-tool" id="btnToggleOriginal" title="Toggle between original and processed" style="@if(!$image->processed_path) display: none; @endif">
+                        <span id="toggleText">&#128065; View Original</span>
+                    </button>
                     <button type="button" class="btn-tool" id="btnZoomOut" title="Zoom Out">&minus;</button>
                     <span class="zoom-level" id="zoomLevel">100%</span>
                     <button type="button" class="btn-tool" id="btnZoomIn" title="Zoom In">&plus;</button>
@@ -125,14 +124,16 @@
 
             @php
                 $activeTab = 'remove_bg';
-                if ($image->last_action === 'compressed') {
+                if ($image->last_action === 'unblurred') {
+                    $activeTab = 'unblur';
+                } elseif ($image->last_action === 'compressed') {
                     $activeTab = 'compress';
                 } elseif ($image->last_action === 'processed' && $image->resize_width && !$image->background_removed) {
                     $activeTab = 'resize';
                 }
             @endphp
 
-            <!-- 3-Tool Switcher Tabs -->
+            <!-- 4-Tool Switcher Tabs -->
             <div class="tool-tabs">
                 <button type="button" class="tool-tab-btn @if($activeTab === 'remove_bg') active @endif" id="tabBtnRemoveBg" data-target="panelRemoveBg">
                     <svg class="tab-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -141,6 +142,15 @@
                         <path d="m18 13 1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2Z"></path>
                     </svg>
                     <span>Remove BG</span>
+                </button>
+                <button type="button" class="tool-tab-btn @if($activeTab === 'unblur') active @endif" id="tabBtnUnblur" data-target="panelUnblur">
+                    <svg class="tab-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        <line x1="11" y1="8" x2="11" y2="14"></line>
+                        <line x1="8" y1="11" x2="14" y2="11"></line>
+                    </svg>
+                    <span>Unblur</span>
                 </button>
                 <button type="button" class="tool-tab-btn @if($activeTab === 'resize') active @endif" id="tabBtnResize" data-target="panelResize">
                     <svg class="tab-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -259,7 +269,97 @@
                 </form>
             </div>
 
-            <!-- TAB 2: RESIZE & SCALE -->
+            <!-- TAB 2: AI UNBLUR & CLARITY ENHANCER -->
+            <div id="panelUnblur" class="tool-tab-panel" style="@if($activeTab !== 'unblur') display: none; @endif">
+                <form id="unblurForm" class="stack-form" method="POST" action="{{ route('images.unblur', $image) }}">
+                    @csrf
+                    <div class="feature-banner-box unblur-banner">
+                        <div class="banner-icon">🔍</div>
+                        <div>
+                            <strong>AI Clarity &amp; Unblur Engine</strong>
+                            <p>Restore crisp edges, deblur motion softness, and enhance micro-contrast details in milliseconds.</p>
+                        </div>
+                    </div>
+
+                    <div id="unblurSuccessBox" class="active-status-card" style="@if($image->last_action !== 'unblurred') display: none; @endif">
+                        <span class="status-icon">✓</span>
+                        <div>
+                            <strong>Clarity Restored &amp; Sharpened</strong>
+                            <p>Photo enhanced with AI Clarity. Toggle "View Original" above to compare before &amp; after.</p>
+                        </div>
+                    </div>
+
+                    <!-- Strength Presets -->
+                    <div class="form-group">
+                        <label class="field-label">Clarity Strength Preset</label>
+                        <div class="preset-pill-group">
+                            <button type="button" class="btn-pill unblur-preset" data-strength="0.35">Subtle (35%)</button>
+                            <button type="button" class="btn-pill unblur-preset active" data-strength="0.65">Balanced (65%)</button>
+                            <button type="button" class="btn-pill unblur-preset" data-strength="0.85">Crisp (85%)</button>
+                            <button type="button" class="btn-pill unblur-preset" data-strength="1.0">Max (100%)</button>
+                        </div>
+                    </div>
+
+                    <!-- Fine-tune Slider -->
+                    <div class="form-group">
+                        <div class="slider-header">
+                            <label class="field-label" for="unblurStrengthInput">Sharpness Intensity</label>
+                            <span class="slider-val" id="unblurStrengthVal">65%</span>
+                        </div>
+                        <input type="range" id="unblurStrengthInput" name="strength" min="0.1" max="1.0" step="0.05" value="0.65" class="range-slider">
+                        <div class="slider-labels">
+                            <span>Gentle Soft</span>
+                            <span>Balanced</span>
+                            <span>Ultra Sharp</span>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Options Checkboxes -->
+                    <div class="form-group">
+                        <label class="check-row" style="margin-bottom: 8px;">
+                            <input type="checkbox" name="denoise" value="1" checked id="checkUnblurDenoise">
+                            <span><strong>Edge-preserving Denoise</strong> (suppress grain in flat zones)</span>
+                        </label>
+                        <label class="check-row">
+                            <input type="checkbox" name="contrast_boost" value="1" checked id="checkUnblurContrast">
+                            <span><strong>Micro-contrast Recovery (CLAHE)</strong> (recover depth)</span>
+                        </label>
+                    </div>
+
+                    <!-- Target Source -->
+                    @if($image->processed_path && $image->processed_path !== $image->original_path)
+                        <div class="form-group">
+                            <label class="field-label">Apply unblur to</label>
+                            <div class="radio-pill-group">
+                                <label class="radio-pill active">
+                                    <input type="radio" name="source_mode" value="current" checked>
+                                    <span>Current Studio Output</span>
+                                </label>
+                                <label class="radio-pill">
+                                    <input type="radio" name="source_mode" value="original">
+                                    <span>Original Upload</span>
+                                </label>
+                            </div>
+                        </div>
+                    @else
+                        <input type="hidden" name="source_mode" value="original">
+                    @endif
+
+                    <button class="button primary-btn unblur-btn full-width" type="submit" id="btnSubmitUnblur">
+                        <span class="btn-text" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+                            <svg class="tab-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                <line x1="11" y1="8" x2="11" y2="14"></line>
+                                <line x1="8" y1="11" x2="14" y2="11"></line>
+                            </svg>
+                            <span id="btnSubmitUnblurText">🔍 Unblur &amp; Restore Clarity Now</span>
+                        </span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- TAB 3: RESIZE & SCALE -->
             <div id="panelResize" class="tool-tab-panel" style="@if($activeTab !== 'resize') display: none; @endif">
                 <form id="processForm" class="stack-form" method="POST" action="{{ route('images.process', $image) }}">
                     @csrf
@@ -653,24 +753,139 @@
                 });
             }
 
-            // 3-Tab toggling logic (Remove BG vs Resize vs Compress)
+            // 4-Tab toggling logic (Remove BG vs Unblur vs Resize vs Compress)
             const tabBtnRemoveBg = document.getElementById('tabBtnRemoveBg');
+            const tabBtnUnblur = document.getElementById('tabBtnUnblur');
             const tabBtnResize = document.getElementById('tabBtnResize');
             const tabBtnCompress = document.getElementById('tabBtnCompress');
             const panelRemoveBg = document.getElementById('panelRemoveBg');
+            const panelUnblur = document.getElementById('panelUnblur');
             const panelResize = document.getElementById('panelResize');
             const panelCompress = document.getElementById('panelCompress');
 
             function switchTab(btn, panel) {
-                [tabBtnRemoveBg, tabBtnResize, tabBtnCompress].forEach(b => b && b.classList.remove('active'));
-                [panelRemoveBg, panelResize, panelCompress].forEach(p => p && (p.style.display = 'none'));
+                [tabBtnRemoveBg, tabBtnUnblur, tabBtnResize, tabBtnCompress].forEach(b => b && b.classList.remove('active'));
+                [panelRemoveBg, panelUnblur, panelResize, panelCompress].forEach(p => p && (p.style.display = 'none'));
                 if (btn) btn.classList.add('active');
                 if (panel) panel.style.display = 'block';
             }
 
             if (tabBtnRemoveBg) tabBtnRemoveBg.addEventListener('click', () => switchTab(tabBtnRemoveBg, panelRemoveBg));
+            if (tabBtnUnblur) tabBtnUnblur.addEventListener('click', () => switchTab(tabBtnUnblur, panelUnblur));
             if (tabBtnResize) tabBtnResize.addEventListener('click', () => switchTab(tabBtnResize, panelResize));
             if (tabBtnCompress) tabBtnCompress.addEventListener('click', () => switchTab(tabBtnCompress, panelCompress));
+
+            // Unblur Preset chips & Slider sync
+            const unblurPresets = document.querySelectorAll('.unblur-preset');
+            const unblurStrengthInput = document.getElementById('unblurStrengthInput');
+            const unblurStrengthVal = document.getElementById('unblurStrengthVal');
+            const unblurForm = document.getElementById('unblurForm');
+            const btnSubmitUnblur = document.getElementById('btnSubmitUnblur');
+            const btnSubmitUnblurText = document.getElementById('btnSubmitUnblurText');
+            const unblurBadge = document.getElementById('unblurBadge');
+            const unblurSuccessBox = document.getElementById('unblurSuccessBox');
+
+            if (unblurStrengthInput && unblurStrengthVal) {
+                unblurStrengthInput.addEventListener('input', function() {
+                    const percent = Math.round(parseFloat(this.value) * 100);
+                    unblurStrengthVal.textContent = percent + '%';
+                    unblurPresets.forEach(b => {
+                        b.classList.toggle('active', Math.abs(parseFloat(b.getAttribute('data-strength')) - parseFloat(this.value)) < 0.04);
+                    });
+                });
+            }
+
+            unblurPresets.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    unblurPresets.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    const str = parseFloat(this.getAttribute('data-strength'));
+                    if (unblurStrengthInput) {
+                        unblurStrengthInput.value = str;
+                        const percent = Math.round(str * 100);
+                        if (unblurStrengthVal) unblurStrengthVal.textContent = percent + '%';
+                    }
+                });
+            });
+
+            // Radio pill toggle for source_mode in unblur
+            document.querySelectorAll('#panelUnblur .radio-pill').forEach(pill => {
+                pill.addEventListener('click', function() {
+                    document.querySelectorAll('#panelUnblur .radio-pill').forEach(p => p.classList.remove('active'));
+                    this.classList.add('active');
+                    const r = this.querySelector('input[type="radio"]');
+                    if (r) r.checked = true;
+                });
+            });
+
+            // Unblur Form AJAX submit
+            if (unblurForm && btnSubmitUnblur) {
+                unblurForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+
+                    const strengthVal = unblurStrengthInput ? unblurStrengthInput.value : 0.65;
+                    const denoiseChecked = document.getElementById('checkUnblurDenoise') ? document.getElementById('checkUnblurDenoise').checked : true;
+                    const contrastChecked = document.getElementById('checkUnblurContrast') ? document.getElementById('checkUnblurContrast').checked : true;
+                    const sourceRadio = document.querySelector('#panelUnblur input[name="source_mode"]:checked');
+                    const sourceModeVal = sourceRadio ? sourceRadio.value : 'original';
+
+                    btnSubmitUnblur.disabled = true;
+                    if (btnSubmitUnblurText) btnSubmitUnblurText.textContent = 'Restoring Clarity with AI... Please wait';
+                    btnSubmitUnblur.style.opacity = '0.7';
+
+                    if (stageOverlayLoader) {
+                        stageOverlayLoader.style.display = 'flex';
+                        if (stageLoaderTitle) stageLoaderTitle.textContent = 'Restoring Clarity & Sharpness...';
+                        if (stageLoaderSubtitle) stageLoaderSubtitle.textContent = 'Applying multi-scale luminance deblur (~0.3s)';
+                    }
+
+                    fetch("{{ route('images.unblur', $image) }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            strength: strengthVal,
+                            denoise: denoiseChecked ? 1 : 0,
+                            contrast_boost: contrastChecked ? 1 : 0,
+                            source_mode: sourceModeVal
+                        })
+                    })
+                    .then(res => {
+                        if (!res.ok) throw new Error('Unblur failed with status ' + res.status);
+                        return res.json();
+                    })
+                    .then(data => {
+                        btnSubmitUnblur.disabled = false;
+                        btnSubmitUnblur.style.opacity = '1';
+                        if (btnSubmitUnblurText) btnSubmitUnblurText.textContent = '🔍 Unblur & Restore Clarity Now';
+                        if (stageOverlayLoader) stageOverlayLoader.style.display = 'none';
+
+                        if (data.success) {
+                            mainImg.src = data.imageUrl;
+                            mainImg.setAttribute('data-processed-src', data.imageUrl);
+                            mainImg.style.display = 'block';
+
+                            if (btnToggleOriginal) btnToggleOriginal.style.display = 'inline-flex';
+                            if (unblurBadge) unblurBadge.style.display = 'inline-flex';
+                            if (unblurSuccessBox) unblurSuccessBox.style.display = 'flex';
+
+                            showToastBadge('✓ Clarity Restored & Saved!');
+                        }
+                    })
+                    .catch(err => {
+                        btnSubmitUnblur.disabled = false;
+                        btnSubmitUnblur.style.opacity = '1';
+                        if (btnSubmitUnblurText) btnSubmitUnblurText.textContent = '🔍 Unblur & Restore Clarity Now';
+                        if (stageOverlayLoader) stageOverlayLoader.style.display = 'none';
+                        console.error('Unblur error:', err);
+                        alert('Could not unblur image. Please try again.');
+                    });
+                });
+            }
 
             // Backdrop styling colors map
             const BACKDROP_COLORS = {

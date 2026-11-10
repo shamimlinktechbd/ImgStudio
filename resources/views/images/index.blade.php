@@ -249,6 +249,20 @@
                     <span class="tool-tag">Lossless Output</span>
                 </div>
             </div>
+
+            <!-- Tool 5 -->
+            <div class="tool-card">
+                <div class="tool-icon-wrapper" style="background: rgba(2, 132, 199, 0.12); color: #0284c7;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                </div>
+                <h3>AI Unblur &amp; Clarity</h3>
+                <p>Restore crisp focus to blurry or soft photos, sharpen illegible text, and enhance facial features with multi-scale luminance deblurring.</p>
+                <div class="tool-tags">
+                    <span class="tool-tag">Deblur Soft Focus</span>
+                    <span class="tool-tag">Micro-Contrast Boost</span>
+                    <span class="tool-tag">Text Sharpener</span>
+                </div>
+            </div>
         </div>
     </section>
 

@@ -48,6 +48,77 @@ def target_size(image, width, height, mode="stretch"):
     return width, height
 
 
+def enhance_clarity(image, strength=0.65, denoise=True, contrast_boost=True):
+    """
+    Restores sharpness and clarity to blurry, out-of-focus, or soft images.
+    Applies luminance channel unsharp masking in LAB color space, bilateral noise-suppression,
+    and adaptive CLAHE micro-contrast boost without creating color artifacts.
+    """
+    import cv2
+    import numpy as np
+
+    has_alpha = image.mode == "RGBA"
+    alpha_channel = None
+    if has_alpha:
+        alpha_channel = image.split()[3]
+        image_rgb = image.convert("RGB")
+    else:
+        image_rgb = image.convert("RGB")
+
+    cv_img = cv2.cvtColor(np.array(image_rgb), cv2.COLOR_RGB2BGR)
+    lab = cv2.cvtColor(cv_img, cv2.COLOR_BGR2LAB)
+    l_chan, a_chan, b_chan = cv2.split(lab)
+
+    strength = float(strength)
+    strength = max(0.1, min(1.0, strength))
+
+    if denoise:
+        d = 5 if strength < 0.7 else 7
+        filtered_l = cv2.bilateralFilter(l_chan, d=d, sigmaColor=22.0, sigmaSpace=22.0)
+    else:
+        filtered_l = l_chan
+
+    # Multi-scale unsharp masking
+    sigma_fine = 1.0 + strength * 1.5
+    gaussian_fine = cv2.GaussianBlur(filtered_l, (0, 0), sigmaX=sigma_fine)
+    unsharp_fine = cv2.addWeighted(filtered_l, 1.0 + strength * 1.8, gaussian_fine, -(strength * 1.8), 0)
+
+    sigma_med = 2.5 + strength * 2.0
+    gaussian_med = cv2.GaussianBlur(filtered_l, (0, 0), sigmaX=sigma_med)
+    unsharp_med = cv2.addWeighted(filtered_l, 1.0 + strength * 1.0, gaussian_med, -(strength * 1.0), 0)
+
+    blended_unsharp = cv2.addWeighted(unsharp_fine, 0.65, unsharp_med, 0.35, 0)
+
+    if contrast_boost:
+        clip_limit = 1.2 + (strength * 1.4)
+        clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(8, 8))
+        clahe_l = clahe.apply(blended_unsharp)
+        enhanced_l = cv2.addWeighted(blended_unsharp, 0.45, clahe_l, 0.55, 0)
+    else:
+        enhanced_l = blended_unsharp
+
+    # Detail kernel sharpening
+    center = 4.0 + (1.2 / max(0.2, strength))
+    kernel = np.array([
+        [0, -1, 0],
+        [-1, center, -1],
+        [0, -1, 0]
+    ], dtype=np.float32)
+    kernel = kernel / np.sum(kernel)
+    sharpened_l = cv2.filter2D(enhanced_l, -1, kernel)
+
+    final_l = cv2.addWeighted(enhanced_l, 0.35, sharpened_l, 0.65, 0)
+    final_lab = cv2.merge((final_l, a_chan, b_chan))
+    final_bgr = cv2.cvtColor(final_lab, cv2.COLOR_LAB2BGR)
+    final_rgb = cv2.cvtColor(final_bgr, cv2.COLOR_BGR2RGB)
+
+    result_pil = Image.fromarray(final_rgb)
+    if has_alpha and alpha_channel:
+        result_pil.putalpha(alpha_channel)
+
+    return result_pil
+
+
 def apply_background(image, background, output_format):
     background = background or "original"
     output_format = output_format.lower()
@@ -222,6 +293,14 @@ def main():
                 os.makedirs(os.path.dirname(cutout_destination), exist_ok=True)
                 image.save(cutout_destination, "PNG", optimize=True)
 
+    unblurred = False
+    if payload.get("unblur") or payload.get("enhance_clarity"):
+        strength = float(payload.get("unblur_strength", 0.65))
+        denoise = bool(payload.get("unblur_denoise", True))
+        contrast_boost = bool(payload.get("unblur_contrast", True))
+        image = enhance_clarity(image, strength=strength, denoise=denoise, contrast_boost=contrast_boost)
+        unblurred = True
+
     req_w = payload.get("width")
     req_h = payload.get("height")
     
@@ -295,6 +374,8 @@ def main():
         "background": payload.get("background", "original"),
         "background_asset": payload.get("background_path"),
         "background_removed": background_removed,
+        "unblurred": unblurred,
+        "unblur_strength": payload.get("unblur_strength"),
     }))
 
 

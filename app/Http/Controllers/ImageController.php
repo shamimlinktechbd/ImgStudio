@@ -305,6 +305,88 @@ class ImageController extends Controller
         return redirect()->route('images.show', $asset)->with('status', $msg);
     }
 
+    public function unblur(Request $request, ImageAsset $image, PythonImageProcessor $processor)
+    {
+        $this->authorizeAsset($request, $image);
+
+        $data = $request->validate([
+            'strength' => ['nullable', 'numeric', 'min:0.1', 'max:1.0'],
+            'denoise' => ['nullable', 'boolean'],
+            'contrast_boost' => ['nullable', 'boolean'],
+            'format' => ['nullable', 'in:png,jpg,jpeg,webp'],
+            'source_mode' => ['nullable', 'in:current,original'],
+        ]);
+
+        $strength = isset($data['strength']) ? (float) $data['strength'] : 0.65;
+        $format = $data['format'] ?? ($image->processed_format ?: pathinfo($image->original_name, PATHINFO_EXTENSION));
+        if ($format === 'jpeg') {
+            $format = 'jpg';
+        }
+
+        $sourceRel = ($data['source_mode'] ?? 'original') === 'current' && $image->processed_path
+            ? $image->processed_path
+            : $image->original_path;
+        $sourcePath = Storage::disk('public')->path($sourceRel);
+
+        $destination = 'images/processed/' . $image->id . '-unblur-' . now()->format('YmdHis') . '.' . $format;
+        Storage::disk('public')->makeDirectory('images/processed');
+
+        try {
+            $result = $processor->process(
+                $sourcePath,
+                Storage::disk('public')->path($destination),
+                [
+                    'format' => $format,
+                    'unblur' => true,
+                    'unblur_strength' => $strength,
+                    'unblur_denoise' => $request->boolean('denoise', true),
+                    'unblur_contrast' => $request->boolean('contrast_boost', true),
+                ]
+            );
+        } catch (\Throwable $exception) {
+            if ($request->wantsJson() || $request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+                return response()->json(['error' => 'Unblur error: ' . $exception->getMessage()], 422);
+            }
+            return back()->withErrors(['processor' => 'Unblur error: ' . $exception->getMessage()]);
+        }
+
+        if ($image->processed_path && $image->processed_path !== $image->original_path && $image->processed_path !== $destination) {
+            Storage::disk('public')->delete($image->processed_path);
+        }
+
+        $image->update([
+            'processed_path' => $destination,
+            'processed_format' => $format,
+            'last_action' => 'unblurred',
+            'metadata' => array_merge($image->metadata ?? [], [
+                'unblurred' => true,
+                'unblur_strength' => $strength,
+                'last_processor' => $result,
+            ]),
+        ]);
+
+        $this->logActivity($request, $image, 'unblurred', [
+            'strength' => $strength,
+            'format' => $format,
+        ]);
+
+        if ($request->wantsJson() || $request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json([
+                'success' => true,
+                'message' => 'Image unblurred and clarity restored successfully!',
+                'imageUrl' => asset('storage/' . $destination) . '?v=' . time(),
+                'originalUrl' => asset('storage/' . $image->original_path) . '?v=' . time(),
+                'width' => $image->width,
+                'height' => $image->height,
+                'size' => $image->formattedCurrentSize(),
+                'savings' => $image->savingsPercent(),
+                'last_action' => 'unblurred',
+            ]);
+        }
+
+        return redirect()->route('images.show', $image)->with('status', 'Image unblurred and clarity restored successfully.');
+    }
+
     public function compressAsset(Request $request, ImageAsset $image, PythonImageProcessor $processor)
     {
         $this->authorizeAsset($request, $image);

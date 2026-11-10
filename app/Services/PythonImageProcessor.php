@@ -26,6 +26,10 @@ class PythonImageProcessor
             'background_path' => $options['background_path'] ?? null,
             'target_kb' => $options['target_kb'] ?? null,
             'quality' => $options['quality'] ?? null,
+            'unblur' => (bool) ($options['unblur'] ?? false),
+            'unblur_strength' => $options['unblur_strength'] ?? null,
+            'unblur_denoise' => (bool) ($options['unblur_denoise'] ?? true),
+            'unblur_contrast' => (bool) ($options['unblur_contrast'] ?? true),
         ]);
 
         $encodedPayload = base64_encode($payload);
