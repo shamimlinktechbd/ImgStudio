@@ -6,6 +6,7 @@ use App\Http\Controllers\ImageController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [ImageController::class, 'index'])->name('images.index');
+Route::get('/images', [ImageController::class, 'index']);
 Route::get('/category/{category}', [ImageController::class, 'index'])->name('images.category');
 Route::get('/compress', [ImageController::class, 'compressIndex'])->name('images.compress.index');
 Route::post('/compress', [ImageController::class, 'compressDirect'])->name('images.compress.direct');

@@ -22,6 +22,14 @@ class ExampleTest extends TestCase
         $response->assertSee('Upload and process image');
     }
 
+    public function test_images_get_route_loads_index_for_guest()
+    {
+        $response = $this->get('/images');
+
+        $response->assertStatus(200);
+        $response->assertSee('Upload and process image');
+    }
+
     protected function createValidJpeg(string $name = 'test.jpg'): UploadedFile
     {
         $hex = 'ffd8ffe000104a46494600010101004800480000ffdb004300080606070605080707070909080a0c140d0c0b0b0c1912130f141d1a1f1e1d1a1c1c20242e2720222c231c1c2837292c30313434341f27393d38323c2e333432ffc0000b080010001001011100ffc4001f0000010501010101010100000000000000000102030405060708090a0bffda0008010100003f007f00ffd9';
