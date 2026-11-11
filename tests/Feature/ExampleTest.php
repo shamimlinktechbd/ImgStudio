@@ -172,4 +172,58 @@ class ExampleTest extends TestCase
             'background_category' => 'studio',
         ]);
     }
+
+    public function test_login_page_renders_with_modern_design()
+    {
+        $response = $this->get(route('login'));
+
+        $response->assertStatus(200);
+        $response->assertSee('auth-page-wrapper');
+        $response->assertSee('auth-split-card');
+        $response->assertSee('Sign In to Studio');
+        $response->assertSee('Enterprise Neural AI');
+    }
+
+    public function test_register_page_renders_with_modern_design()
+    {
+        $response = $this->get(route('register'));
+
+        $response->assertStatus(200);
+        $response->assertSee('auth-page-wrapper');
+        $response->assertSee('auth-split-card');
+        $response->assertSee('Create Free Account');
+        $response->assertSee('Zero Limitations');
+    }
+
+    public function test_user_can_register_and_redirect_to_studio()
+    {
+        $response = $this->post(route('register.store'), [
+            'name' => 'Demo Designer',
+            'email' => 'designer@imagestudio.test',
+            'password' => 'secret1234',
+            'password_confirmation' => 'secret1234',
+        ]);
+
+        $response->assertRedirect(route('images.index'));
+        $this->assertAuthenticated();
+        $this->assertDatabaseHas('users', [
+            'email' => 'designer@imagestudio.test',
+        ]);
+    }
+
+    public function test_user_can_login_with_valid_credentials()
+    {
+        $user = User::factory()->create([
+            'email' => 'user@imagestudio.test',
+            'password' => bcrypt('secret1234'),
+        ]);
+
+        $response = $this->post(route('login.store'), [
+            'email' => 'user@imagestudio.test',
+            'password' => 'secret1234',
+        ]);
+
+        $response->assertRedirect(route('images.index'));
+        $this->assertAuthenticatedAs($user);
+    }
 }

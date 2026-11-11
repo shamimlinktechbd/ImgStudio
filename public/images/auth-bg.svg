@@ -1,0 +1,168 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+    <defs>
+        <!-- Deep Studio Gradients -->
+        <linearGradient id="bg-base" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#070A12"/>
+            <stop offset="45%" stop-color="#0D1322"/>
+            <stop offset="85%" stop-color="#14192E"/>
+            <stop offset="100%" stop-color="#181530"/>
+        </linearGradient>
+
+        <linearGradient id="aurora-indigo" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#4F46E5" stop-opacity="0.85"/>
+            <stop offset="50%" stop-color="#7C3AED" stop-opacity="0.45"/>
+            <stop offset="100%" stop-color="#2563EB" stop-opacity="0"/>
+        </linearGradient>
+
+        <linearGradient id="aurora-cyan" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.7"/>
+            <stop offset="60%" stop-color="#3B82F6" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#6366F1" stop-opacity="0"/>
+        </linearGradient>
+
+        <linearGradient id="aurora-magenta" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#EC4899" stop-opacity="0.6"/>
+            <stop offset="70%" stop-color="#8B5CF6" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="#4F46E5" stop-opacity="0"/>
+        </linearGradient>
+
+        <linearGradient id="line-grad-1" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#4F46E5" stop-opacity="0"/>
+            <stop offset="50%" stop-color="#818CF8" stop-opacity="0.4"/>
+            <stop offset="100%" stop-color="#06B6D4" stop-opacity="0"/>
+        </linearGradient>
+
+        <linearGradient id="line-grad-2" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#C084FC" stop-opacity="0"/>
+            <stop offset="50%" stop-color="#A855F7" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#3B82F6" stop-opacity="0"/>
+        </linearGradient>
+
+        <linearGradient id="glass-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.25"/>
+            <stop offset="50%" stop-color="#818CF8" stop-opacity="0.15"/>
+            <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+        </linearGradient>
+
+        <linearGradient id="glass-fill-1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#6366F1" stop-opacity="0.12"/>
+            <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.02"/>
+        </linearGradient>
+
+        <linearGradient id="glass-fill-2" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#EC4899" stop-opacity="0.1"/>
+            <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0.02"/>
+        </linearGradient>
+
+        <!-- Glow Blur Filters -->
+        <filter id="glow-heavy" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="120" result="blur"/>
+        </filter>
+        <filter id="glow-med" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="60" result="blur"/>
+        </filter>
+        <filter id="glow-soft" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="30" result="blur"/>
+        </filter>
+
+        <!-- Grid Pattern -->
+        <pattern id="grid-pattern" width="80" height="80" patternUnits="userSpaceOnUse">
+            <path d="M 80 0 L 0 0 0 80" fill="none" stroke="#6366F1" stroke-width="0.8" stroke-opacity="0.08"/>
+            <circle cx="80" cy="0" r="1.5" fill="#818CF8" fill-opacity="0.2"/>
+        </pattern>
+
+        <!-- Dot Matrix Pattern -->
+        <pattern id="dot-pattern" width="32" height="32" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1" fill="#FFFFFF" fill-opacity="0.07"/>
+        </pattern>
+    </defs>
+
+    <!-- Base Canvas Background -->
+    <rect width="1920" height="1080" fill="url(#bg-base)"/>
+
+    <!-- Subtle Dot Matrix Layer -->
+    <rect width="1920" height="1080" fill="url(#dot-pattern)"/>
+
+    <!-- Aurora Glow Spheres -->
+    <!-- Top-Left Indigo Glow -->
+    <ellipse cx="280" cy="180" rx="460" ry="380" fill="url(#aurora-indigo)" filter="url(#glow-heavy)"/>
+    
+    <!-- Center-Bottom Violet/Cyan Glow -->
+    <ellipse cx="1050" cy="920" rx="580" ry="420" fill="url(#aurora-cyan)" filter="url(#glow-heavy)"/>
+
+    <!-- Top-Right Magenta/Pink Accent Glow -->
+    <ellipse cx="1680" cy="220" rx="420" ry="340" fill="url(#aurora-magenta)" filter="url(#glow-heavy)"/>
+
+    <!-- Center Floating Ambient Glow -->
+    <circle cx="960" cy="480" r="320" fill="url(#aurora-indigo)" opacity="0.35" filter="url(#glow-heavy)"/>
+
+    <!-- Perspective Grid Section -->
+    <g opacity="0.85">
+        <rect width="1920" height="1080" fill="url(#grid-pattern)"/>
+    </g>
+
+    <!-- Isometric Abstract Tech Geometry -->
+    <g transform="translate(140, 260) rotate(-12)" opacity="0.7">
+        <!-- Floating Glass Cube 1 -->
+        <polygon points="120,40 240,100 120,160 0,100" fill="url(#glass-fill-1)" stroke="url(#glass-stroke)" stroke-width="1.5"/>
+        <polygon points="0,100 120,160 120,300 0,240" fill="url(#glass-fill-2)" stroke="url(#glass-stroke)" stroke-width="1.5"/>
+        <polygon points="120,160 240,100 240,240 120,300" fill="url(#glass-fill-1)" stroke="url(#glass-stroke)" stroke-width="1.5"/>
+    </g>
+
+    <g transform="translate(1540, 640) rotate(18)" opacity="0.6">
+        <!-- Floating Glass Cube 2 -->
+        <polygon points="100,30 200,80 100,130 0,80" fill="url(#glass-fill-2)" stroke="url(#glass-stroke)" stroke-width="1.5"/>
+        <polygon points="0,80 100,130 100,240 0,190" fill="url(#glass-fill-1)" stroke="url(#glass-stroke)" stroke-width="1.5"/>
+        <polygon points="100,130 200,80 200,190 100,240" fill="url(#glass-fill-2)" stroke="url(#glass-stroke)" stroke-width="1.5"/>
+    </g>
+
+    <!-- Curved Neural Rays / Studio Light Waveforms -->
+    <path d="M -100 480 C 400 320, 700 780, 1200 450 C 1600 200, 1850 540, 2050 420" 
+          fill="none" stroke="url(#line-grad-1)" stroke-width="2.5" opacity="0.65"/>
+    <path d="M -80 540 C 420 380, 720 840, 1220 510 C 1620 260, 1870 600, 2070 480" 
+          fill="none" stroke="url(#line-grad-1)" stroke-width="1.5" opacity="0.35"/>
+    <path d="M -50 820 C 350 960, 850 560, 1400 750 C 1750 880, 1920 620, 2020 580" 
+          fill="none" stroke="url(#line-grad-2)" stroke-width="2" opacity="0.4"/>
+
+    <!-- Neural Constellation Nodes -->
+    <g opacity="0.6">
+        <!-- Node Connections -->
+        <line x1="260" y1="220" x2="380" y2="160" stroke="#818CF8" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.4"/>
+        <line x1="380" y1="160" x2="520" y2="240" stroke="#818CF8" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.4"/>
+        <line x1="260" y1="220" x2="310" y2="340" stroke="#818CF8" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.4"/>
+        
+        <circle cx="260" cy="220" r="4" fill="#818CF8"/>
+        <circle cx="260" cy="220" r="10" fill="#818CF8" fill-opacity="0.25"/>
+        <circle cx="380" cy="160" r="3" fill="#A78BFA"/>
+        <circle cx="520" cy="240" r="5" fill="#38BDF8"/>
+        <circle cx="520" cy="240" r="12" fill="#38BDF8" fill-opacity="0.2"/>
+        <circle cx="310" cy="340" r="3.5" fill="#C084FC"/>
+
+        <!-- Right Side Constellation -->
+        <line x1="1620" y1="780" x2="1740" y2="710" stroke="#818CF8" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.4"/>
+        <line x1="1740" y1="710" x2="1820" y2="820" stroke="#818CF8" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.4"/>
+        <circle cx="1620" cy="780" r="4.5" fill="#38BDF8"/>
+        <circle cx="1620" cy="780" r="11" fill="#38BDF8" fill-opacity="0.2"/>
+        <circle cx="1740" cy="710" r="3.5" fill="#818CF8"/>
+        <circle cx="1820" cy="820" r="5" fill="#F472B6"/>
+        <circle cx="1820" cy="820" r="13" fill="#F472B6" fill-opacity="0.2"/>
+    </g>
+
+    <!-- Floating Graphic Plus Accents (+) -->
+    <g fill="#818CF8" opacity="0.35">
+        <path d="M 180 120 H 192 V 122 H 180 Z M 185 115 V 127 H 187 V 115 Z"/>
+        <path d="M 640 180 H 652 V 182 H 640 Z M 645 175 V 187 H 647 V 175 Z"/>
+        <path d="M 1420 160 H 1432 V 162 H 1420 Z M 1425 155 V 167 H 1427 V 155 Z"/>
+        <path d="M 1760 380 H 1772 V 382 H 1760 Z M 1765 375 V 387 H 1767 V 375 Z"/>
+        <path d="M 220 860 H 232 V 862 H 220 Z M 225 855 V 867 H 227 V 855 Z"/>
+        <path d="M 1520 920 H 1532 V 922 H 1520 Z M 1525 915 V 927 H 1527 V 915 Z"/>
+    </g>
+
+    <!-- Ambient Vignette Ring -->
+    <radialGradient id="vignette" cx="50%" cy="50%" r="65%">
+        <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
+        <stop offset="100%" stop-color="#05070D" stop-opacity="0.65"/>
+    </radialGradient>
+    <rect width="1920" height="1080" fill="url(#vignette)"/>
+</svg>
+
